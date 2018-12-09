@@ -2,6 +2,8 @@
 Generating recursive models from training data.
 """
 
+import math
+
 import numpy as np
 import tensorflow as tf
 
@@ -37,7 +39,13 @@ def learn(samples, labels, depth=10, log_fn=lambda x: None, **learn_kwargs):
     return model
 
 
-def learn_linear(samples, labels, epochs=10, lr=1e-3, init_weights=None, init_biases=None):
+def learn_linear(samples,
+                 labels,
+                 epochs=10,
+                 lr=1e-3,
+                 init_weights=None,
+                 init_biases=None,
+                 batch_size=100):
     """
     Learn a linear model.
 
@@ -47,6 +55,7 @@ def learn_linear(samples, labels, epochs=10, lr=1e-3, init_weights=None, init_bi
         labels.
       epochs: number of training epochs.
       lr: adam stepsize.
+      batch_size: SGD mini-batch size.
 
     Returns:
       A tuple (weights, biases, loss):
@@ -54,23 +63,34 @@ def learn_linear(samples, labels, epochs=10, lr=1e-3, init_weights=None, init_bi
         biases: a 1-D array of size num_labels.
         loss: the mean loss on the training set.
     """
+    if batch_size > len(samples):
+        batch_size = len(samples)
+
     weight_shape = [samples.shape[-1], labels.shape[-1]]
     bias_shape = [weight_shape[-1]]
     if init_weights is None:
-        init_weights = np.random.normal(size=weight_shape).astype(np.float32)
+        init_weights = np.random.normal(size=weight_shape).astype(
+            np.float32) / np.sqrt(samples.shape[-1])
     if init_biases is None:
         init_biases = np.random.normal(size=bias_shape).astype(np.float32)
+
     with tf.Graph().as_default():
-        samples_const = tf.constant(samples, dtype=tf.float32)
-        labels_const = tf.constant(labels, dtype=tf.float32)
         weights = tf.get_variable('weights', initializer=tf.constant(init_weights))
         biases = tf.get_variable('biases', initializer=tf.constant(init_biases))
-        logits = tf.matmul(samples_const, weights) + biases
-        losses = tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=labels_const)
+
+        samples_const = tf.constant(samples, dtype=tf.float32)
+        labels_const = tf.constant(labels, dtype=tf.float32)
+        batch_indices = tf.random.shuffle(tf.range(len(samples)))[:batch_size]
+        batch_samples = tf.gather(samples_const, batch_indices)
+        batch_labels = tf.gather(labels_const, batch_indices)
+
+        logits = tf.matmul(batch_samples, weights) + biases
+        losses = tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=batch_labels)
         loss = tf.reduce_mean(losses)
         optim = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss)
+
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            for _ in range(epochs):
+            for _ in range(math.ceil(epochs * len(samples) / batch_size)):
                 sess.run(optim)
             return sess.run((weights, biases, loss))

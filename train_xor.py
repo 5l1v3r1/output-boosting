@@ -14,6 +14,8 @@ def main():
           labels=np.array([[1, 0], [0, 1], [0, 1], [1, 0]], dtype=np.float32),
           depth=1000,
           lr=1e-4,
+          batch_size=4,
+          epochs=10,
           log_fn=print)
 
 
