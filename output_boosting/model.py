@@ -38,6 +38,16 @@ class Model(ABC):
         """
         pass
 
+    def augmented_features(self, samples):
+        """
+        Get a set of features that includes information
+        from the output of this Model.
+        """
+        samples = self.add_features(samples)
+        logits = self.logits(samples)
+        probs = softmax(logits)
+        return np.concatenate([samples, probs], axis=-1)
+
 
 class BaseModel(Model):
     """
@@ -69,10 +79,7 @@ class RecursiveModel(BaseModel):
         self.parent = parent
 
     def add_features(self, samples):
-        samples = self.parent.add_features(samples)
-        logits = self.parent.logits(samples)
-        probs = softmax(logits)
-        return np.concatenate([samples, probs], axis=-1)
+        return self.parent.augmented_features(samples)
 
 
 def softmax(logits):
