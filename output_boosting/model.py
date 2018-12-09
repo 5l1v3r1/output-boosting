@@ -71,4 +71,12 @@ class RecursiveModel(BaseModel):
     def add_features(self, samples):
         samples = self.parent.add_features(samples)
         logits = self.parent.logits(samples)
-        return np.concatenate([samples, logits], axis=-1)
+        probs = softmax(logits)
+        return np.concatenate([samples, probs], axis=-1)
+
+
+def softmax(logits):
+    maxes = np.max(logits, axis=-1, keepdims=True)
+    exps = np.exp(logits - maxes)
+    sums = np.sum(exps, axis=-1, keepdims=True)
+    return exps / sums
