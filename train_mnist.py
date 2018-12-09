@@ -14,7 +14,7 @@ def main():
     y_test_oh = one_hot_labels(y_test)
     x_train = x_train.reshape([-1, 28 * 28])
     x_test = x_test.reshape([-1, 28 * 28])
-    model = learn(x_train, y_train_oh, depth=10, lr=1e-3, epochs=20,
+    model = learn(x_train, y_train_oh, depth=40, lr=1e-4, epochs=20,
                   batch_size=1000, log_fn=print)
     print('train accuracy %f' % model_accuracy(model, x_train, y_train_oh))
     print('test accuracy %f' % model_accuracy(model, x_test, y_test_oh))
